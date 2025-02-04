@@ -7,6 +7,10 @@ enum RealtimeAPIError: Error {
 	case invalidMessage
 }
 
+public enum RealtimeAPIProtocol {
+    case webSocket, webRTC
+}
+
 public final class RealtimeAPI: NSObject, Sendable {
 	@MainActor public var onDisconnect: (@Sendable () -> Void)? {
 		get { connector.onDisconnect }

@@ -105,6 +105,20 @@ public final class Conversation: Sendable {
 	public convenience init(connectingTo request: URLRequest) {
 		self.init(client: RealtimeAPI.webSocket(connectingTo: request))
 	}
+    
+    /// Create a new conversation that connects using a custom `URLRequest`.
+    public convenience init(authToken token: String,
+                            model: String = "gpt-4o-realtime-preview",
+                            using protocol: RealtimeAPIProtocol) async throws{
+        switch `protocol` {
+            case .webSocket:
+                self.init(client: RealtimeAPI.webSocket(authToken: token, model: model))
+            case .webRTC:
+                let client = try await RealtimeAPI.webRTC(authToken: token, model: model)
+                self.init(client: client)
+        }
+    }
+
 
 	/// Wait for the connection to be established
 	@MainActor public func waitForConnection() async {
