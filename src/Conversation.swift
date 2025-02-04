@@ -180,9 +180,9 @@ public extension Conversation {
 	/// Start listening to the user's microphone and sending audio data to the model.
 	/// This will automatically call `startHandlingVoice` if it hasn't been called yet.
 	/// > Warning: Make sure to handle the case where the user denies microphone access.
-	@MainActor func startListening() throws {
+	@MainActor func startListening(audioSession: AVAudioSession? = AVAudioSession.sharedInstance()) throws {
 		guard !isListening else { return }
-		if !handlingVoice { try startHandlingVoice() }
+        if !handlingVoice { try startHandlingVoice(audioSession: audioSession) }
 
 		Task.detached {
 			self.audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: self.audioEngine.inputNode.outputFormat(forBus: 0)) { [weak self] buffer, _ in
@@ -203,7 +203,7 @@ public extension Conversation {
 	}
 
 	/// Handle the playback of audio responses from the model.
-	@MainActor func startHandlingVoice() throws {
+    @MainActor func startHandlingVoice(audioSession: AVAudioSession? = AVAudioSession.sharedInstance()) throws {
 		guard !handlingVoice else { return }
 
 		guard let converter = AVAudioConverter(from: audioEngine.inputNode.outputFormat(forBus: 0), to: desiredFormat) else {
@@ -212,7 +212,6 @@ public extension Conversation {
 		userConverter.set(converter)
 
 		#if os(iOS)
-		let audioSession = AVAudioSession.sharedInstance()
 		try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
 		try audioSession.setActive(true)
 		#endif
@@ -262,7 +261,7 @@ public extension Conversation {
 	}
 
 	/// Stop playing audio responses from the model and listening to the user's microphone.
-	@MainActor func stopHandlingVoice() {
+	@MainActor func stopHandlingVoice(audioSession: AVAudioSession? = AVAudioSession.sharedInstance()) {
 		guard handlingVoice else { return }
 
 		audioEngine.inputNode.removeTap(onBus: 0)
@@ -271,7 +270,7 @@ public extension Conversation {
 		audioEngine.disconnectNodeOutput(playerNode)
 
 		#if os(iOS)
-		try? AVAudioSession.sharedInstance().setActive(false)
+		try? audioSession.setActive(false)
 		#elseif os(macOS)
 		if audioEngine.isRunning {
 			audioEngine.stop()
