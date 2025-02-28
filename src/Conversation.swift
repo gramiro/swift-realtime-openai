@@ -129,7 +129,7 @@ public final class Conversation: Sendable {
     /// Create a new conversation that connects using a custom `URLRequest`.
     public convenience init(authToken token: String,
                             model: String = "gpt-4o-realtime-preview",
-                            using protocol: RealtimeAPIProtocol) async throws{
+                            using protocol: RealtimeAPIProtocol) async throws {
         switch `protocol` {
             case .webSocket:
                 self.init(client: RealtimeAPI.webSocket(authToken: token, model: model))
@@ -250,7 +250,6 @@ public extension Conversation {
         let compatibleFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)
         audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: compatibleFormat)
         
-        
 #if os(iOS)
         do {
             try audioEngine.inputNode.setVoiceProcessingEnabled(true)
@@ -267,7 +266,6 @@ public extension Conversation {
             try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
             try audioSession.setPreferredSampleRate(44100)
             try audioSession.setActive(true)
-            
 #endif
             
             handlingVoice = true
