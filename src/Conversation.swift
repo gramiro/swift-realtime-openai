@@ -247,24 +247,26 @@ public extension Conversation {
         
         audioEngine.attach(playerNode)
         
-        let compatibleFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)
+        let compatibleFormat = AVAudioFormat(standardFormatWithSampleRate: 48000, channels: 1)
         audioEngine.connect(playerNode, to: audioEngine.mainMixerNode, format: compatibleFormat)
+                
+        audioEngine.prepare()
         
 #if os(iOS)
         do {
+            try audioEngine.start()
             try audioEngine.inputNode.setVoiceProcessingEnabled(true)
         } catch {
             print("Failed to setVoiceProcessingEnabled: \(error.localizedDescription)")
         }
 #endif
         
-        audioEngine.prepare()
         do {
             try audioEngine.start()
             
 #if os(iOS)
             try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth])
-            try audioSession.setPreferredSampleRate(44100)
+            try audioSession.setPreferredSampleRate(48000)
             try audioSession.setActive(true)
 #endif
             
