@@ -113,7 +113,7 @@ public final class Conversation: Sendable {
         
         // use webrtc
         do {
-            try await self.init(client: RealtimeAPI.webRTC(authToken: token, model: model))
+            try await self.init(client: RealtimeAPI.webRTC(ephemeralKey: token, model: model))
         }
         catch {
             print("Exception - webRTC init failed: \(error). \nFalling back to webSocket...")
@@ -127,17 +127,10 @@ public final class Conversation: Sendable {
     }
     
     /// Create a new conversation that connects using a custom `URLRequest`.
-    public convenience init(authToken token: String,
-                            model: String = "gpt-4o-realtime-preview",
-                            isEphemeralKey: Bool = false,
-                            using protocol: RealtimeAPIProtocol) async throws {
-        switch `protocol` {
-            case .webSocket:
-                self.init(client: RealtimeAPI.webSocket(authToken: token, model: model))
-            case .webRTC:
-                let client = try await RealtimeAPI.webRTC(authToken: token, isEphemeralKey: isEphemeralKey, model: model)
-                self.init(client: client)
-        }
+    public convenience init(ephemeralKey: String,
+                            model: String = "gpt-4o-realtime-preview-2024-12-17") async throws {
+        let client = try await RealtimeAPI.webRTC(ephemeralKey: ephemeralKey, model: model)
+        self.init(client: client)
     }
     
     

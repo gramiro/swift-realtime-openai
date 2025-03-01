@@ -68,56 +68,13 @@ extension RealtimeAPI {
 	}
 
 	/// Connect to the OpenAI WebRTC Realtime API with the given authentication token and model.
-    static func webRTC(authToken: String, isEphemeralKey: Bool = false, model: String = "gpt-4o-realtime-preview-2024-12-17") async throws -> RealtimeAPI {
-    
-    // https://platform.openai.com/docs/guides/realtime-webrtc
-    var ephemeralKey = ""
-        
-    if !isEphemeralKey {
-        guard let url = URL(string: "https://api.openai.com/v1/realtime/sessions") else {
-            throw URLError(.badURL)
-        }
-        var sessionRequest = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy)
-        sessionRequest.httpMethod = "POST"
-        sessionRequest.httpBody = try JSONSerialization.data(withJSONObject: [
-            "model": model,
-            "voice": "shimmer"
-        ])
-        sessionRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        sessionRequest.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-        let (data, response) = try await URLSession.shared.data(for: sessionRequest)
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-        let arr = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] ?? [:]
-        
-        for element in arr {
-            if element.key == "client_secret" {
-                let arr2 = element.value as! [String : Any]
-                for element2 in arr2 {
-                    if element2.key == "value" {
-                        ephemeralKey = element2.value as! String
-    
-                        break
-                    }
-                }
-                break
-            }
-        }
-    } else {
-        ephemeralKey = authToken
-    }
+    static func webRTC(ephemeralKey: String, model: String) async throws -> RealtimeAPI {
     
     var realTimeRequest = URLRequest(url: URL(string: "https://api.openai.com/v1/realtime")!.appending(queryItems: [
       URLQueryItem(name: "model", value: model),
     ]))
 
     realTimeRequest.httpMethod = "POST"
-    // Add query items to the body instead of appending them to the URL
-    let body = ["model": model]
-    realTimeRequest.httpBody = try? JSONSerialization.data(withJSONObject: body)
-    // Add headers
     realTimeRequest.addValue("application/sdp", forHTTPHeaderField: "Content-Type")
     realTimeRequest.addValue("Bearer \(ephemeralKey)", forHTTPHeaderField: "Authorization")
 
