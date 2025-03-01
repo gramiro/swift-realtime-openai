@@ -68,56 +68,61 @@ extension RealtimeAPI {
 	}
 
 	/// Connect to the OpenAI WebRTC Realtime API with the given authentication token and model.
-	static func webRTC(authToken: String, model: String = "gpt-4o-realtime-preview-2024-12-17") async throws -> RealtimeAPI {
+    static func webRTC(authToken: String, isEphemeralKey: Bool = false, model: String = "gpt-4o-realtime-preview-2024-12-17") async throws -> RealtimeAPI {
     
     // https://platform.openai.com/docs/guides/realtime-webrtc
+    var ephemeralKey = ""
+        
+    if !isEphemeralKey {
+        guard let url = URL(string: "https://api.openai.com/v1/realtime/sessions") else {
+            throw URLError(.badURL)
+        }
+        var sessionRequest = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy)
+        sessionRequest.httpMethod = "POST"
+        sessionRequest.httpBody = try JSONSerialization.data(withJSONObject: [
+            "model": model,
+            "voice": "shimmer"
+        ])
+        sessionRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        sessionRequest.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: sessionRequest)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        let arr = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] ?? [:]
+        
+        for element in arr {
+            if element.key == "client_secret" {
+                let arr2 = element.value as! [String : Any]
+                for element2 in arr2 {
+                    if element2.key == "value" {
+                        ephemeralKey = element2.value as! String
     
-    guard let url = URL(string: "https://api.openai.com/v1/realtime/sessions") else {
-        throw URLError(.badURL)
-    }
-    var request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy)
-    request.httpMethod = "POST"
-    request.httpBody = try JSONSerialization.data(withJSONObject: [
-        "model": model,
-        "voice": "echo"
-    ])
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
-    let (data, response) = try await URLSession.shared.data(for: request)
-    guard let httpResponse = response as? HTTPURLResponse,
-          (200...299).contains(httpResponse.statusCode) else {
-        throw URLError(.badServerResponse)
-    }
-    let arr = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] ?? [:]
-    var ephemeral_key = ""
-    for element in arr {
-        if element.key == "client_secret" {
-          let arr2 = element.value as! [String : Any]
-          for element2 in arr2 {
-            if element2.key == "value" {
-              ephemeral_key = element2.value as! String
-              
-              break
+                        break
+                    }
+                }
+                break
             }
-          }
-          break
-      }
+        }
+    } else {
+        ephemeralKey = authToken
     }
     
-    request = URLRequest(url: URL(string: "https://api.openai.com/v1/realtime")!.appending(queryItems: [
+    var realTimeRequest = URLRequest(url: URL(string: "https://api.openai.com/v1/realtime")!.appending(queryItems: [
       URLQueryItem(name: "model", value: model),
     ]))
 
-    request.httpMethod = "POST"
+    realTimeRequest.httpMethod = "POST"
     // Add query items to the body instead of appending them to the URL
     let body = ["model": model]
-    request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+    realTimeRequest.httpBody = try? JSONSerialization.data(withJSONObject: body)
     // Add headers
-    request.addValue("application/sdp", forHTTPHeaderField: "Content-Type")
-    request.addValue("Bearer \(ephemeral_key)", forHTTPHeaderField: "Authorization")
+    realTimeRequest.addValue("application/sdp", forHTTPHeaderField: "Content-Type")
+    realTimeRequest.addValue("Bearer \(ephemeralKey)", forHTTPHeaderField: "Authorization")
 
-    print(ephemeral_key)
+    print(ephemeralKey)
     
-		return try await webRTC(connectingTo: request)
+		return try await webRTC(connectingTo: realTimeRequest)
 	}
 }
