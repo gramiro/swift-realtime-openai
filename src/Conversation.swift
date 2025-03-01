@@ -129,12 +129,13 @@ public final class Conversation: Sendable {
     /// Create a new conversation that connects using a custom `URLRequest`.
     public convenience init(authToken token: String,
                             model: String = "gpt-4o-realtime-preview",
+                            isEphemeralKey: Bool = false,
                             using protocol: RealtimeAPIProtocol) async throws {
         switch `protocol` {
             case .webSocket:
                 self.init(client: RealtimeAPI.webSocket(authToken: token, model: model))
             case .webRTC:
-                let client = try await RealtimeAPI.webRTC(authToken: token, model: model)
+                let client = try await RealtimeAPI.webRTC(authToken: token, isEphemeralKey: isEphemeralKey, model: model)
                 self.init(client: client)
         }
     }
