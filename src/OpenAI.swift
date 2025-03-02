@@ -39,7 +39,7 @@ public final class RealtimeAPI: NSObject, Sendable {
     if self.connector as? WebSocketConnector != nil {
       return nil
     } else {
-      return self.connector as! WebRTCConnector
+        return (self.connector as! WebRTCConnector)
     }
   }
 }

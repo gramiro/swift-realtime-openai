@@ -12,6 +12,7 @@ public final class Conversation: Sendable {
   private let client: RealtimeAPI
   @MainActor private var cancelTask: (() -> Void)?
   private let errorStream: AsyncStream<ServerError>.Continuation
+  private let eventStream: AsyncStream<ServerEvent>.Continuation
 
   private let audioEngine = AVAudioEngine()
   private let playerNode = AVAudioPlayerNode()
@@ -25,6 +26,9 @@ public final class Conversation: Sendable {
 
   /// A stream of errors that occur during the conversation.
   public let errors: AsyncStream<ServerError>
+
+  /// A stream of all server events received during the conversation.
+  public let events: AsyncStream<ServerEvent>
 
   /// The unique ID of the conversation.
   @MainActor public private(set) var id: String?
@@ -65,11 +69,14 @@ public final class Conversation: Sendable {
   private init(client: RealtimeAPI) {
     self.client = client
     (errors, errorStream) = AsyncStream.makeStream(of: ServerError.self)
+    (events, eventStream) = AsyncStream.makeStream(of: ServerEvent.self)
 
     let task = Task.detached { [weak self] in
       guard let self else { return }
 
       for try await event in client.events {
+        // Broadcast the event to subscribers
+        self.eventStream.yield(event)
         await self.handleEvent(event)
       }
 
@@ -95,6 +102,7 @@ public final class Conversation: Sendable {
 
   deinit {
     errorStream.finish()
+    eventStream.finish()
 
     DispatchQueue.main.asyncAndWait {
       cancelTask?()
